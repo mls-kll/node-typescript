@@ -17,19 +17,24 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.get('/pigs', (req: express.Request, res: express.Response) => {
-  const data = db.getData('/');
-  res.json(data);
+  try {
+    const data = db.getData('/');
+    res.json(data);
+  } catch {
+    res.status(500);
+  }
 });
 
 app.get('/pig/:id', (req: express.Request, res: express.Response) => {
   const id = req.params.id;
-  const data = db.getData('/');
-  if (!data.pigs)
-    res.status(400).send({
-      message: 'Empty database',
-    });
-  const pig = data.pigs.filter((pig: PigType) => pig.id === id);
-  res.json(pig);
+  try {
+    const data = db.getData('/');
+    console.log(data);
+    const pig = data.pigs.filter((pig: PigType) => pig.id === id);
+    res.json(pig);
+  } catch {
+    res.status(500);
+  }
 });
 
 app.post('/pigs', (req: express.Request, res: express.Response) => {
@@ -53,13 +58,19 @@ app.post('/pigs', (req: express.Request, res: express.Response) => {
 app.put('/pig/:id', (req: express.Request, res: express.Response) => {
   const id = req.params.id;
   const data = db.getData('/');
-  if (!data.pigs)
-    res.status(400).send({
-      message: 'Empty database',
-    });
-  res.json({
-    message: 'data updated'
-  });
+  const pigIndex = data.pigs.findIndex((pig: PigType) => pig.id === id);
+  const pig = data.pigs[pigIndex];
+  const { breed, description } = req.body;
+  const newPig: object = {
+    id,
+    breed: breed ? breed : pig.breed,
+    description: description ? description : pig.description,
+  };
+  try {
+    db.push(`/pigs[${pigIndex}]`, newPig);
+  } catch (error) {
+    res.status(500).json(error);
+  }
 });
 
 app.delete('/pig/:id', (req: express.Request, res: express.Response) => {
