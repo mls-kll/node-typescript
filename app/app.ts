@@ -1,90 +1,88 @@
 import express from 'express';
 import * as http from 'http';
 import bodyParser from 'body-parser';
-import { v4 as uuidv4 } from 'uuid';
+import mongoose from 'mongoose';
 
-import { JsonDB } from 'node-json-db';
-import { Config } from 'node-json-db/dist/lib/JsonDBConfig';
-
-import { PigType } from '../types';
+import { Pig } from '../models/pig';
 
 const app: express.Application = express();
 const server: http.Server = http.createServer(app);
 const port = 8080;
-const db = new JsonDB(new Config('pigData', true, false, '/'));
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-app.get('/pigs', (req: express.Request, res: express.Response) => {
+const uri: string =
+  'mongodb+srv://mlskll:jaystack@cluster0.b8okf.mongodb.net/pigShop';
+
+mongoose
+  .connect(uri, {
+    useNewUrlParser: true,
+  })
+  .then(() => {
+    console.log('Mongo DB connected!');
+  })
+  .catch((err) => {
+    console.log(err);
+    console.log('Could not connect to Mongo DB');
+  });
+
+app.get('/pigs', async (req: express.Request, res: express.Response) => {
   try {
-    const data = db.getData('/');
-    res.json(data);
-  } catch {
-    res.status(500);
+    const pigs = await Pig.find({});
+    res.json(pigs);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send(error);
   }
 });
 
-app.get('/pig/:id', (req: express.Request, res: express.Response) => {
-  const id = req.params.id;
+app.get('/pig/:id', async (req: express.Request, res: express.Response) => {
+  const _id = req.params.id;
   try {
-    const data = db.getData('/');
-    console.log(data);
-    const pig = data.pigs.filter((pig: PigType) => pig.id === id);
+    const pig = await Pig.findById({ _id });
     res.json(pig);
-  } catch {
-    res.status(500);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send(error);
   }
 });
 
-app.post('/pigs', (req: express.Request, res: express.Response) => {
+app.post('/pigs', async (req: express.Request, res: express.Response) => {
   const { breed, description } = req.body;
-  const newPig: object = {
-    id: uuidv4(),
+  const newPigData: object = {
     breed,
     description,
   };
-
+  const newPig = new Pig(newPigData);
   try {
-    db.push('/pigs[]', newPig, true);
-    res.json({
-      message: 'data recived',
-    });
+    await newPig.save();
+    res.send(newPig);
   } catch (error) {
-    res.status(500);
+    res.status(500).send(error);
   }
 });
 
-app.put('/pig/:id', (req: express.Request, res: express.Response) => {
-  const id = req.params.id;
-  const data = db.getData('/');
-  const pigIndex = data.pigs.findIndex((pig: PigType) => pig.id === id);
-  const pig = data.pigs[pigIndex];
-  const { breed, description } = req.body;
-  const newPig: object = {
-    id,
-    breed: breed ? breed : pig.breed,
-    description: description ? description : pig.description,
-  };
+app.put('/pig/:id', async (req: express.Request, res: express.Response) => {
+  const _id = req.params.id;
   try {
-    db.push(`/pigs[${pigIndex}]`, newPig);
+    const pig = await Pig.findByIdAndUpdate(_id, req.body);
+    res.send(pig);
   } catch (error) {
-    res.status(500).json(error);
+    console.log(error);
+    res.status(500).send(error);
   }
 });
 
-app.delete('/pig/:id', (req: express.Request, res: express.Response) => {
-  const id = req.params.id;
+app.delete('/pig/:id', async (req: express.Request, res: express.Response) => {
+  const _id = req.params.id;
   try {
-    const data = db.getData('/');
-    const pigIndex = data.pigs.findIndex((pig: PigType) => pig.id === id);
-    if (pigIndex < 0) return;
-    db.delete(`/pigs[${pigIndex}]`);
-    res.json({
-      message: 'item removed from database',
-    });
+    const pig = await Pig.findByIdAndDelete(_id);
+    if (!pig) res.status(404).send('No item found');
+    res.status(200).send();
   } catch (error) {
-    res.status(500);
+    console.log(error);
+    res.status(500).send(error);
   }
 });
 
