@@ -2,6 +2,7 @@ import express from 'express';
 import * as http from 'http';
 import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
+import * as dotenv from "dotenv"; 
 
 import { Pig } from '../models/pig';
 
@@ -11,9 +12,9 @@ const port = 8080;
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+dotenv.config();
 
-const uri: string =
-  'mongodb+srv://mlskll:jaystack@cluster0.b8okf.mongodb.net/pigShop';
+const uri: string = process.env.MONGO_URI ?? 'default';
 
 mongoose
   .connect(uri, {
@@ -29,7 +30,7 @@ mongoose
 
 app.get('/pigs', async (req: express.Request, res: express.Response) => {
   try {
-    const pigs = await Pig.find({});
+    const pigs = await Pig.find();
     res.json(pigs);
   } catch (error) {
     console.log(error);
