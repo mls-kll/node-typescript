@@ -1,6 +1,7 @@
 import express from 'express';
 import * as http from 'http';
 import bodyParser from 'body-parser';
+import multer from 'multer';
 
 import postPig from '../middlewares/validatePOST';
 import contextMiddleware from '../middlewares/context';
@@ -13,8 +14,10 @@ export default (context: ContextType) => {
   const app: express.Application = express();
   const server: http.Server = http.createServer(app);
   const port = 8080;
+  const storage = multer.memoryStorage()
+  const upload = multer({ storage: storage })
 
-  app.use(bodyParser.urlencoded({ extended: false }));
+  app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json());
   app.use(contextMiddleware(context));
 
@@ -46,11 +49,14 @@ export default (context: ContextType) => {
   app.post(
     '/pigs',
     postPig(pigSchema, 'body'),
+    upload.single('img'),
     async (req: IApiRequest, res: express.Response) => {
       const { breed, description } = req.body;
+      const img = req.file.buffer.toString("base64");
       const newPigData: object = {
         breed,
         description,
+        img
       };
       const newPig = new Pig(newPigData);
       try {
