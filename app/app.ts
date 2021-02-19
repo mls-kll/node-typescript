@@ -2,6 +2,7 @@ import express from 'express';
 import * as http from 'http';
 import bodyParser from 'body-parser';
 import multer from 'multer';
+import cors from 'cors';
 
 import postPig from '../middlewares/validatePOST';
 import contextMiddleware from '../middlewares/context';
@@ -20,6 +21,7 @@ export default (context: ContextType) => {
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json());
   app.use(contextMiddleware(context));
+  app.use(cors());
 
   app.get('/pigs', async (req: IApiRequest, res: express.Response) => {
     try {
@@ -52,11 +54,11 @@ export default (context: ContextType) => {
     upload.single('img'),
     async (req: IApiRequest, res: express.Response) => {
       const { breed, description } = req.body;
-      const img = req.file.buffer.toString("base64");
+      const img = req.file?.buffer?.toString("base64");
       const newPigData: object = {
         breed,
         description,
-        img
+        img: img ? img : ''
       };
       const newPig = new Pig(newPigData);
       try {
