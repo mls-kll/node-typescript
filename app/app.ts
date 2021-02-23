@@ -15,8 +15,8 @@ export default (context: ContextType) => {
   const app: express.Application = express();
   const server: http.Server = http.createServer(app);
   const port = 8080;
-  const storage = multer.memoryStorage()
-  const upload = multer({ storage: storage })
+  const storage = multer.memoryStorage();
+  const upload = multer({ storage: storage });
 
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json());
@@ -54,11 +54,11 @@ export default (context: ContextType) => {
     upload.single('img'),
     async (req: IApiRequest, res: express.Response) => {
       const { breed, description } = req.body;
-      const img = req.file?.buffer?.toString("base64");
+      const img = req.file?.buffer?.toString('base64');
       const newPigData: object = {
         breed,
         description,
-        img: img ? img : ''
+        img: img ? img : '',
       };
       const newPig = new Pig(newPigData);
       try {
@@ -93,8 +93,15 @@ export default (context: ContextType) => {
       const _id = req.params.id;
       try {
         const pig = await Pig.findByIdAndDelete(_id);
-        if (!pig) res.status(404).send('No item found');
-        res.status(200).send();
+        if (pig) {
+          try {
+            const pigs = await Pig.find();
+            res.json(pigs);
+          } catch (error) {
+            req?.context?.logger;
+            res.status(500).send(error);
+          }
+        }
       } catch (error) {
         req?.context?.logger;
         res.status(500).send(error);
