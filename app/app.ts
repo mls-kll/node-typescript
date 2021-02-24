@@ -4,6 +4,13 @@ import bodyParser from 'body-parser';
 import multer from 'multer';
 import cors from 'cors';
 
+import {
+  getPigs,
+  getPig,
+  updatePig,
+  deletePig,
+  postPigs,
+} from '../controllers/pigsController';
 import postPig from '../middlewares/validatePOST';
 import contextMiddleware from '../middlewares/context';
 
@@ -24,27 +31,14 @@ export default (context: ContextType) => {
   app.use(cors());
 
   app.get('/pigs', async (req: IApiRequest, res: express.Response) => {
-    try {
-      const pigs = await Pig.find();
-      res.json(pigs);
-    } catch (error) {
-      req?.context?.logger;
-      res.status(500).send(error);
-    }
+    await getPigs(req, res);
   });
 
   app.get(
     '/pig/:id',
     postPig(idSchema, 'params'),
     async (req: IApiRequest, res: express.Response) => {
-      const _id = req.params.id;
-      try {
-        const pig = await Pig.findById({ _id });
-        res.json(pig);
-      } catch (error) {
-        req?.context?.logger;
-        res.status(500).send(error);
-      }
+      await getPig(req, res);
     }
   );
 
@@ -53,21 +47,7 @@ export default (context: ContextType) => {
     postPig(pigSchema, 'body'),
     upload.single('img'),
     async (req: IApiRequest, res: express.Response) => {
-      const { breed, description } = req.body;
-      const img = req.file?.buffer?.toString('base64');
-      const newPigData: object = {
-        breed,
-        description,
-        img: img ? img : '',
-      };
-      const newPig = new Pig(newPigData);
-      try {
-        await newPig.save();
-        res.send(newPig);
-      } catch (error) {
-        req?.context?.logger;
-        res.status(500).send(error);
-      }
+      await postPigs(req, res);
     }
   );
 
@@ -75,14 +55,7 @@ export default (context: ContextType) => {
     '/pig/:id',
     postPig(idSchema, 'params'),
     async (req: IApiRequest, res: express.Response) => {
-      const _id = req.params.id;
-      try {
-        const pig = await Pig.findByIdAndUpdate(_id, req.body);
-        res.send(pig);
-      } catch (error) {
-        req?.context?.logger;
-        res.status(500).send(error);
-      }
+      await updatePig(req, res);
     }
   );
 
@@ -90,22 +63,7 @@ export default (context: ContextType) => {
     '/pig/:id',
     postPig(idSchema, 'params'),
     async (req: IApiRequest, res: express.Response) => {
-      const _id = req.params.id;
-      try {
-        const pig = await Pig.findByIdAndDelete(_id);
-        if (pig) {
-          try {
-            const pigs = await Pig.find();
-            res.json(pigs);
-          } catch (error) {
-            req?.context?.logger;
-            res.status(500).send(error);
-          }
-        }
-      } catch (error) {
-        req?.context?.logger;
-        res.status(500).send(error);
-      }
+      await deletePig(req, res);
     }
   );
 
